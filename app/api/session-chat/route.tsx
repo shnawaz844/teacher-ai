@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(result[0]?.SessionChatTable);
     } catch (e) {
-        return NextResponse.json(e)
+        console.error("Error in POST /api/session-chat:", e);
+        return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
     }
 }
 

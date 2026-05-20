@@ -133,7 +133,7 @@ Conversation: ${JSON.stringify(messages)}
 
       return NextResponse.json(JSONResp)
    } catch (e) {
-      return NextResponse.json(e)
-
+      console.error("Error in POST /api/training-report:", e);
+      return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
    }
 }
