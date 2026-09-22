@@ -88,7 +88,7 @@ Conversation: ${JSON.stringify(messages)}
       `.trim();
 
       const completion = await openai.chat.completions.create({
-         model: "google/gemini-2.0-flash-001",
+         model: "google/gemini-2.5-flash",
          messages: [
             { role: 'system', content: SESSION_REPORT_PROMPT },
             { role: "user", content: UserInput }
@@ -98,8 +98,16 @@ Conversation: ${JSON.stringify(messages)}
       const rawResp = completion.choices[0].message;
 
       //@ts-ignore
-      const Resp = rawResp.content.trim().replace('```json', '').replace('```', '')
-      const JSONResp = JSON.parse(Resp);
+      let Resp = (rawResp.content || "").trim();
+      if (Resp.startsWith("```json")) {
+         Resp = Resp.slice(7);
+      } else if (Resp.startsWith("```")) {
+         Resp = Resp.slice(3);
+      }
+      if (Resp.endsWith("```")) {
+         Resp = Resp.slice(0, -3);
+      }
+      const JSONResp = JSON.parse(Resp.trim());
 
       // Ensure user and agent fields are populated if AI missed them
       if (!JSONResp.user || JSONResp.user === "Anonymous") JSONResp.user = studentName || "Anonymous";

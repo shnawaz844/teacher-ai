@@ -4,9 +4,10 @@ import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { TeacherAgent } from "../../_components/TeacherAgentCard";
-import { Circle, Loader, PhoneCall, PhoneOff, Mic, MicOff } from "lucide-react";
+import { Circle, Loader, PhoneCall, PhoneOff, Mic, MicOff, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+// @ts-ignore
 import Vapi from "@vapi-ai/web";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
@@ -265,7 +266,7 @@ Help the student understand the topic well enough to confidently clear a school 
       }
     });
 
-    vapi.on("message", (message) => {
+    vapi.on("message", (message: any) => {
       if (!callActiveRef.current) return;
 
       // Log all messages to debug
@@ -356,7 +357,7 @@ Help the student understand the topic well enough to confidently clear a school 
     vapi.on("speech-end", () => {
       setCurrentRole("user");
     });
-    vapi.on("error", (err) => {
+    vapi.on("error", (err: any) => {
       if (err?.errorMsg === "Meeting has ended") {
         console.log("Meeting already ended, ignoring");
         return;
@@ -393,14 +394,16 @@ Help the student understand the topic well enough to confidently clear a school 
     } catch {
       // call already ended — ignore
       console.log("Meeting already ended, ignoring");
-      return;
     }
 
-    vapiInstance.off("call-start");
-    vapiInstance.off("call-end");
-    vapiInstance.off("message");
-    vapiInstance.off("speech-start");
-    vapiInstance.off("speech-end");
+    try {
+      const events = ["call-start", "call-end", "message", "speech-start", "speech-end", "error"];
+      events.forEach((evt) => {
+        vapiInstance.removeAllListeners?.(evt);
+      });
+    } catch (err) {
+      console.log("Error cleaning up listeners:", err);
+    }
 
     setCallStarted(false);
     setVapiInstance(null);
@@ -431,23 +434,47 @@ Help the student understand the topic well enough to confidently clear a school 
     return result.data;
   };
 
+  const handleBack = () => {
+    if (callStarted) {
+      const confirmLeave = window.confirm("Are you sure you want to leave? The ongoing voice session will be ended.");
+      if (confirmLeave) {
+        endCall();
+        router.replace("/dashboard");
+      }
+    } else {
+      router.replace("/dashboard");
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)] p-5 border rounded-3xl bg-[#e69b6a]">
+    <div className="flex flex-col w-full min-h-[calc(100vh-61px)] md:h-[calc(100vh-61px)] p-4 md:p-6 bg-[#e69b6a] rounded-none border-0">
       {/* Status bar showing if call is connected */}
       <div className="flex justify-between items-center">
-        <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center text-[#ffff]">
-          <Circle
-            className={`h-4 w-4 rounded-full text-[#ffff] ${callStarted ? "bg-green-500" : "bg-red-500"
-              }`}
-          />
-          {callStarted ? "Connected..." : "Not Connected"}
-        </h2>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBack}
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white border-white/40 hover:text-white backdrop-blur-sm transition-all cursor-pointer font-medium"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </Button>
+
+          <h2 className="p-1 px-2.5 border border-white/40 rounded-md flex gap-2 items-center text-white bg-white/10 backdrop-blur-sm text-sm font-medium">
+            <Circle
+              className={`h-3.5 w-3.5 rounded-full ${callStarted ? "bg-green-500 fill-green-500" : "bg-red-500 fill-red-500"
+                }`}
+            />
+            {callStarted ? "Connected..." : "Not Connected"}
+          </h2>
+        </div>
         <h2 className="font-bold text-xl text-[#ffff]">{formatTime(seconds)}</h2>{" "}
       </div>
 
       {/* Main content shows doctor details and conversation */}
       {sessionDetail && (
-        <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mt-6 flex-1 min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-10 gap-4 md:gap-6 mt-4 md:mt-6 flex-1 min-h-0">
           {/* Left Side: Avatar & Controls (30%) */}
           <div className="md:col-span-3 flex flex-col items-center bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full overflow-hidden">
             <audio id="vapi-dummy-audio" className="hidden" autoPlay playsInline />
